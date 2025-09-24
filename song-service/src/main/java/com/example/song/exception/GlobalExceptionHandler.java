@@ -21,9 +21,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DuplicateException.class)
     public ResponseEntity<?> handleDuplicate(DuplicateException ex) {
-        // важливо: у відповіді має бути і id, і errorMessage/errorCode
         String msg = ex.getMessage();
-        // витягнемо id з повідомлення, якщо треба
         Long id = null;
         try {
             String[] parts = msg.split(" ");

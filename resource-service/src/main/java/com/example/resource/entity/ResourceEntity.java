@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "resources")
 public class ResourceEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,5 +29,5 @@ public class ResourceEntity {
     public void setContentType(String contentType) { this.contentType = contentType; }
 
     public String getFileName() { return fileName; }
-    public void setFileName(String fileName) { this.fileName = fileName;}
+    public void setFileName(String fileName) { this.fileName = fileName; }
 }

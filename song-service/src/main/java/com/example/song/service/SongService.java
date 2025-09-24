@@ -7,4 +7,7 @@ public interface SongService {
     Long create(SongDto dto);
     SongDto get(Long id);
     List<Long> deleteByIds(List<Long> ids);
+
+    SongDto handleGet(String id);
+    List<Long> handleDelete(String id);
 }

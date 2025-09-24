@@ -12,11 +12,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 public class SongServiceImpl implements SongService {
+
     private final SongRepository repo;
-    private final Pattern durationPattern = Pattern.compile("^\\d{1,2}:[0-5]\\d$");
     private final Pattern yearPattern = Pattern.compile("^(19\\d{2}|20\\d{2})$");
 
     public SongServiceImpl(SongRepository repo) {
@@ -31,7 +32,6 @@ public class SongServiceImpl implements SongService {
         if (dto.id() == null) {
             errors.put("id", "id is required");
         } else if (repo.existsById(dto.id())) {
-            // дубль → 409
             throw new DuplicateException("Song with id " + dto.id() + " already exists");
         }
 
@@ -44,31 +44,16 @@ public class SongServiceImpl implements SongService {
         if (dto.album() == null || dto.album().length() > 100) {
             errors.put("album", "must be 1-100 chars");
         }
-        if (dto.duration() == null) {
+        if (dto.duration() == null || !dto.duration().matches("^\\d{1,2}:[0-5]\\d$")) {
             errors.put("duration", "must match mm:ss");
-        } else {
-            String[] parts = dto.duration().split(":");
-            if (parts.length != 2) {
-                errors.put("duration", "must match mm:ss");
-            } else {
-                try {
-                    int minutes = Integer.parseInt(parts[0]);
-                    int seconds = Integer.parseInt(parts[1]);
-                    if (minutes < 0 || seconds < 0 || seconds > 59) {
-                        errors.put("duration", "must match mm:ss");
-                    }
-                } catch (NumberFormatException e) {
-                    errors.put("duration", "must match mm:ss");
-                }
-            }
         }
         if (dto.year() == null || !yearPattern.matcher(dto.year()).matches()) {
             errors.put("year", "must be valid YYYY between 1900–2099");
         }
+
         if (!errors.isEmpty()) {
             throw new ValidationErrorsException(errors);
         }
-
 
         SongEntity e = new SongEntity();
         e.setId(dto.id());
@@ -100,5 +85,35 @@ public class SongServiceImpl implements SongService {
             }
         }
         return deleted;
+    }
+
+    @Override
+    public SongDto handleGet(String id) {
+        long parsed;
+        try {
+            parsed = Long.parseLong(id);
+            if (parsed <= 0) throw new NumberFormatException();
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("Invalid id: " + id);
+        }
+        return get(parsed);
+    }
+
+    @Override
+    public List<Long> handleDelete(String id) {
+        if (id.length() > 200) {
+            throw new IllegalArgumentException("CSV too long: " + id.length());
+        }
+        List<Long> ids;
+        try {
+            ids = Arrays.stream(id.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .map(Long::valueOf)
+                    .collect(Collectors.toList());
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Invalid CSV");
+        }
+        return deleteByIds(ids);
     }
 }
