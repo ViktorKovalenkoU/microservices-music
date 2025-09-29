@@ -1,8 +1,14 @@
 package com.example.resource.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "resources")
 public class ResourceEntity {
 
@@ -19,7 +25,7 @@ public class ResourceEntity {
     @Column(name = "file_name")
     private String fileName;
 
-    public Long getId() { return id; }
+    /*public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
     public byte[] getData() { return data; }
@@ -29,5 +35,5 @@ public class ResourceEntity {
     public void setContentType(String contentType) { this.contentType = contentType; }
 
     public String getFileName() { return fileName; }
-    public void setFileName(String fileName) { this.fileName = fileName; }
+    public void setFileName(String fileName) { this.fileName = fileName; }*/
 }
