@@ -2,6 +2,7 @@ package com.example.song.controller;
 
 import com.example.song.dto.SongDto;
 import com.example.song.service.SongService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,9 +20,9 @@ public class SongController {
     }
 
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody SongDto dto) {
+    public ResponseEntity<?> create(@Valid @RequestBody SongDto dto) {
         Long id = service.create(dto);
-        return ResponseEntity.ok(Map.of("id", id));
+        return ResponseEntity.ok(id);
     }
 
     @GetMapping("/{id}")

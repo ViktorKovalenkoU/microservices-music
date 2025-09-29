@@ -27,32 +27,9 @@ public class SongServiceImpl implements SongService {
     @Override
     @Transactional
     public Long create(SongDto dto) {
-        Map<String, String> errors = new HashMap<>();
 
-        if (dto.id() == null) {
-            errors.put("id", "id is required");
-        } else if (repo.existsById(dto.id())) {
+        if (repo.existsById(dto.id())) {
             throw new DuplicateException("Song with id " + dto.id() + " already exists");
-        }
-
-        if (dto.name() == null || dto.name().length() > 100) {
-            errors.put("name", "must be 1-100 chars");
-        }
-        if (dto.artist() == null || dto.artist().length() > 100) {
-            errors.put("artist", "must be 1-100 chars");
-        }
-        if (dto.album() == null || dto.album().length() > 100) {
-            errors.put("album", "must be 1-100 chars");
-        }
-        if (dto.duration() == null || !dto.duration().matches("^\\d{1,2}:[0-5]\\d$")) {
-            errors.put("duration", "must match mm:ss");
-        }
-        if (dto.year() == null || !yearPattern.matcher(dto.year()).matches()) {
-            errors.put("year", "must be valid YYYY between 1900–2099");
-        }
-
-        if (!errors.isEmpty()) {
-            throw new ValidationErrorsException(errors);
         }
 
         SongEntity e = new SongEntity();
