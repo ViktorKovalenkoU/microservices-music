@@ -4,21 +4,17 @@ import com.example.song.dto.SongDto;
 import com.example.song.entity.SongEntity;
 import com.example.song.exception.DuplicateException;
 import com.example.song.exception.NotFoundException;
-import com.example.song.exception.ValidationErrorsException;
 import com.example.song.repository.SongRepository;
 import com.example.song.service.SongService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 @Service
 public class SongServiceImpl implements SongService {
 
     private final SongRepository repo;
-    private final Pattern yearPattern = Pattern.compile("^(19\\d{2}|20\\d{2})$");
 
     public SongServiceImpl(SongRepository repo) {
         this.repo = repo;
@@ -27,11 +23,41 @@ public class SongServiceImpl implements SongService {
     @Override
     @Transactional
     public Long create(SongDto dto) {
-
         if (repo.existsById(dto.id())) {
             throw new DuplicateException("Song with id " + dto.id() + " already exists");
         }
+        SongEntity e = toEntity(dto);
+        repo.save(e);
+        return e.getId();
+    }
 
+    @Override
+    public SongDto get(Long id) {
+        return repo.findById(id)
+                .map(this::toDto)
+                .orElseThrow(() -> new NotFoundException("Song metadata not found: " + id));
+    }
+
+    @Override
+    @Transactional
+    public List<Long> deleteByIds(List<Long> ids) {
+        return ids.stream()
+                .filter(repo::existsById)
+                .peek(repo::deleteById)
+                .toList();
+    }
+
+    @Override
+    public SongDto handleGet(String id) {
+        return get(parseId(id));
+    }
+
+    @Override
+    public List<Long> handleDelete(String id) {
+        return deleteByIds(parseCsv(id));
+    }
+
+    private SongEntity toEntity(SongDto dto) {
         SongEntity e = new SongEntity();
         e.setId(dto.id());
         e.setName(dto.name());
@@ -39,58 +65,36 @@ public class SongServiceImpl implements SongService {
         e.setAlbum(dto.album());
         e.setDuration(dto.duration());
         e.setYear(dto.year());
-        repo.save(e);
-        return e.getId();
+        return e;
     }
 
-    @Override
-    public SongDto get(Long id) {
-        SongEntity e = repo.findById(id)
-                .orElseThrow(() -> new NotFoundException("Song metadata not found: " + id));
+    private SongDto toDto(SongEntity e) {
         return new SongDto(e.getId(), e.getName(), e.getArtist(),
                 e.getAlbum(), e.getDuration(), e.getYear());
     }
 
-    @Override
-    @Transactional
-    public List<Long> deleteByIds(List<Long> ids) {
-        List<Long> deleted = new ArrayList<>();
-        for (Long id : ids) {
-            if (repo.existsById(id)) {
-                repo.deleteById(id);
-                deleted.add(id);
-            }
-        }
-        return deleted;
-    }
-
-    @Override
-    public SongDto handleGet(String id) {
-        long parsed;
+    private long parseId(String id) {
         try {
-            parsed = Long.parseLong(id);
+            long parsed = Long.parseLong(id);
             if (parsed <= 0) throw new NumberFormatException();
+            return parsed;
         } catch (NumberFormatException ex) {
             throw new IllegalArgumentException("Invalid id: " + id);
         }
-        return get(parsed);
     }
 
-    @Override
-    public List<Long> handleDelete(String id) {
-        if (id.length() > 200) {
-            throw new IllegalArgumentException("CSV too long: " + id.length());
+    private List<Long> parseCsv(String csv) {
+        if (csv.length() > 200) {
+            throw new IllegalArgumentException("CSV too long: " + csv.length());
         }
-        List<Long> ids;
         try {
-            ids = Arrays.stream(id.split(","))
+            return Arrays.stream(csv.split(","))
                     .map(String::trim)
                     .filter(s -> !s.isEmpty())
                     .map(Long::valueOf)
-                    .collect(Collectors.toList());
+                    .toList();
         } catch (Exception ex) {
             throw new IllegalArgumentException("Invalid CSV");
         }
-        return deleteByIds(ids);
     }
 }
