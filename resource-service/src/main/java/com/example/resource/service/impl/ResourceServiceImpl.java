@@ -1,5 +1,9 @@
 package com.example.resource.service.impl;
 
+import org.apache.tika.Tika;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.parser.AutoDetectParser;
+import org.apache.tika.sax.BodyContentHandler;
 import com.example.resource.entity.ResourceEntity;
 import com.example.resource.exception.NotFoundException;
 import com.example.resource.repository.ResourceRepository;
@@ -12,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import jakarta.servlet.http.HttpServletRequest;
+
 import java.io.IOException;
 import java.time.Duration;
 import java.util.*;
@@ -42,13 +47,28 @@ public class ResourceServiceImpl implements ResourceService {
         ent.setFileName("uploaded.mp3");
         ResourceEntity saved = repository.save(ent);
 
+        Map<String, String> meta = extractMetadata(fileBytes);
+
         var payload = new HashMap<String, Object>();
         payload.put("id", saved.getId().intValue());
-        payload.put("name", "");
-        payload.put("artist", "");
-        payload.put("album", "");
-        payload.put("duration", "00:00");
-        payload.put("year", "1900");
+        payload.put("name", Optional.ofNullable(meta.get("name")).orElse("Unknown"));
+        payload.put("artist", Optional.ofNullable(meta.get("artist")).orElse("Unknown"));
+        payload.put("album", Optional.ofNullable(meta.get("album")).orElse("Unknown"));
+
+        String duration = "00:00";
+        try {
+            String durMs = meta.get("duration");
+            if (durMs != null) {
+                long ms = (long) Double.parseDouble(durMs);
+                long totalSec = ms / 1000;
+                long min = totalSec / 60;
+                long sec = totalSec % 60;
+                duration = String.format("%02d:%02d", min, sec);
+            }
+        } catch (Exception ignored) {}
+        payload.put("duration", duration);
+
+        payload.put("year", Optional.ofNullable(meta.get("year")).orElse("1900"));
 
         try {
             webClient.post().uri("/songs")
@@ -84,7 +104,8 @@ public class ResourceServiceImpl implements ResourceService {
                             .bodyToMono(Void.class)
                             .onErrorResume(e -> reactor.core.publisher.Mono.empty())
                             .block();
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
                 deleted.add(id);
             }
         }
@@ -133,5 +154,24 @@ public class ResourceServiceImpl implements ResourceService {
             throw new IllegalArgumentException("Invalid CSV");
         }
         return deleteByIds(ids);
+    }
+
+    private Map<String, String> extractMetadata(byte[] fileBytes) {
+        Map<String, String> meta = new HashMap<>();
+        try (var stream = new java.io.ByteArrayInputStream(fileBytes)) {
+            AutoDetectParser parser = new AutoDetectParser();
+            Metadata metadata = new Metadata();
+            BodyContentHandler handler = new BodyContentHandler();
+
+            parser.parse(stream, handler, metadata);
+
+            meta.put("name", metadata.get("title"));
+            meta.put("artist", metadata.get("xmpDM:artist"));
+            meta.put("album", metadata.get("xmpDM:album"));
+            meta.put("duration", metadata.get("xmpDM:duration"));
+            meta.put("year", metadata.get("xmpDM:releaseDate"));
+        } catch (Exception e) {
+        }
+        return meta;
     }
 }
