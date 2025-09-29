@@ -47,6 +47,22 @@ public class GlobalExceptionHandler {
         ));
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<?> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest().body(Map.of(
+                "errorMessage", ex.getMessage(),
+                "errorCode", "400"
+        ));
+    }
+
+    @ExceptionHandler(NumberFormatException.class)
+    public ResponseEntity<?> handleNumberFormat(NumberFormatException ex) {
+        return ResponseEntity.badRequest().body(Map.of(
+                "errorMessage", "Invalid id",
+                "errorCode", "400"
+        ));
+    }
+
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleAll(Exception ex) {
@@ -55,6 +71,5 @@ public class GlobalExceptionHandler {
                 "errorCode", "500"
         ));
     }
-
 
 }

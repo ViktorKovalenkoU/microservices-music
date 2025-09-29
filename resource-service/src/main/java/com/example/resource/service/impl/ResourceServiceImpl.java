@@ -4,6 +4,7 @@ import com.example.resource.entity.ResourceEntity;
 import com.example.resource.exception.NotFoundException;
 import com.example.resource.repository.ResourceRepository;
 import com.example.resource.service.ResourceService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -22,9 +23,10 @@ public class ResourceServiceImpl implements ResourceService {
     private final ResourceRepository repository;
     private final WebClient webClient;
 
-    public ResourceServiceImpl(ResourceRepository repository, WebClient.Builder webClientBuilder) {
+    public ResourceServiceImpl(ResourceRepository repository, WebClient.Builder webClientBuilder,
+                               @Value("${resource.service.base-url}") String baseUrl) {
         this.repository = repository;
-        this.webClient = webClientBuilder.baseUrl("http://localhost:8081").build();
+        this.webClient = webClientBuilder.baseUrl(baseUrl).build();
     }
 
     @Override
