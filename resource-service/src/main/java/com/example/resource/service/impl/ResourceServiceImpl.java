@@ -4,20 +4,18 @@ import com.example.resource.entity.ResourceEntity;
 import com.example.resource.exception.NotFoundException;
 import com.example.resource.repository.ResourceRepository;
 import com.example.resource.service.ResourceService;
+import com.example.resource.service.SongClientService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.sax.BodyContentHandler;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -25,13 +23,11 @@ import java.util.stream.Collectors;
 public class ResourceServiceImpl implements ResourceService {
 
     private final ResourceRepository repository;
-    private final WebClient webClient;
+    private final SongClientService songClientService;
 
-    public ResourceServiceImpl(ResourceRepository repository,
-                               WebClient.Builder webClientBuilder,
-                               @Value("${resource.service.base-url}") String baseUrl) {
+    public ResourceServiceImpl(ResourceRepository repository, SongClientService songClientService) {
         this.repository = repository;
-        this.webClient = webClientBuilder.baseUrl(baseUrl).build();
+        this.songClientService = songClientService;
     }
 
     @Override
@@ -44,7 +40,7 @@ public class ResourceServiceImpl implements ResourceService {
         );
 
         Map<String, Object> payload = buildPayload(saved, fileBytes);
-        sendToSongService(payload);
+        songClientService.createSong(payload);
 
         return saved.getId();
     }
@@ -63,7 +59,7 @@ public class ResourceServiceImpl implements ResourceService {
         for (Long id : ids) {
             if (repository.existsById(id)) {
                 repository.deleteById(id);
-                sendDeleteToSongService(id);
+                songClientService.deleteSong(id);
                 deleted.add(id);
             }
         }
@@ -105,31 +101,6 @@ public class ResourceServiceImpl implements ResourceService {
         );
     }
 
-    private void sendToSongService(Map<String, Object> payload) {
-        try {
-            webClient.post().uri("/songs")
-                    .bodyValue(payload)
-                    .retrieve()
-                    .bodyToMono(Void.class)
-                    .timeout(Duration.ofSeconds(5))
-                    .onErrorResume(e -> reactor.core.publisher.Mono.empty())
-                    .block();
-        } catch (Exception ignored) {
-        }
-    }
-
-    private void sendDeleteToSongService(Long id) {
-        try {
-            webClient.delete()
-                    .uri(uriBuilder -> uriBuilder.path("/songs").queryParam("id", id).build())
-                    .retrieve()
-                    .bodyToMono(Void.class)
-                    .onErrorResume(e -> reactor.core.publisher.Mono.empty())
-                    .block();
-        } catch (Exception ignored) {
-        }
-    }
-
     private Map<String, String> extractMetadata(byte[] fileBytes) {
         Map<String, String> meta = new HashMap<>();
         try (var stream = new ByteArrayInputStream(fileBytes)) {
@@ -142,8 +113,7 @@ public class ResourceServiceImpl implements ResourceService {
             meta.put("album", metadata.get("xmpDM:album"));
             meta.put("duration", metadata.get("xmpDM:duration")); // мс
             meta.put("year", metadata.get("xmpDM:releaseDate"));
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
         return meta;
     }
 
