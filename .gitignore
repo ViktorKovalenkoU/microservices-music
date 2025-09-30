@@ -33,6 +33,7 @@ out/
 .settings/
 
 # Maven
+**/target/
 target/
 
 # Gradle
