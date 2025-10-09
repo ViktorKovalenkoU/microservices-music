@@ -4,7 +4,7 @@
 
 1. Start Postgres databases:
    ```bash
-   docker compose -f compose.yaml up -d
+   docker compose -f docker-compose.yaml up -d
    ```
    (compose.yaml is included in repo root)
 

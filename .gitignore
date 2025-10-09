@@ -3,6 +3,7 @@
 
 # Log files
 *.log
+logs/
 
 # BlueJ files
 *.ctxt
@@ -40,5 +41,10 @@ target/
 .gradle/
 build/
 
-# Logs
-*.log
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE backups
+*.swp
+*.bak
