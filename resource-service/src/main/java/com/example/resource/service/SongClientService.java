@@ -1,5 +1,8 @@
 package com.example.resource.service;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -11,6 +14,7 @@ import java.util.Map;
 public class SongClientService {
 
     private final WebClient webClient;
+    private final Logger logger = LoggerFactory.getLogger(SongClientService.class);
 
     public SongClientService(WebClient.Builder builder,
                              @org.springframework.beans.factory.annotation.Value("${resource.service.base-url}") String baseUrl) {
@@ -26,7 +30,9 @@ public class SongClientService {
                     .timeout(Duration.ofSeconds(5))
                     .onErrorResume(e -> Mono.empty())
                     .block();
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+            logger.error(ExceptionUtils.getStackTrace(ignored));
+        }
     }
 
     public void deleteSong(Long id) {
@@ -36,7 +42,10 @@ public class SongClientService {
                     .retrieve()
                     .bodyToMono(Void.class)
                     .onErrorResume(e -> Mono.empty())
+                    //config to Evreka
                     .block();
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+            logger.error(ExceptionUtils.getStackTrace(ignored));
+        }
     }
 }
