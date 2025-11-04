@@ -16,22 +16,25 @@ public class SongClientService {
     private final WebClient webClient;
     private final Logger logger = LoggerFactory.getLogger(SongClientService.class);
 
-    public SongClientService(WebClient.Builder builder,
-                             @org.springframework.beans.factory.annotation.Value("${resource.service.base-url}") String baseUrl) {
-        this.webClient = builder.baseUrl(baseUrl).build();
+    public SongClientService(WebClient.Builder builder) {
+        this.webClient = builder.baseUrl("http://song-service").build();
     }
 
     public void createSong(Map<String, Object> payload) {
         try {
-            webClient.post().uri("/songs")
+            webClient.post()
+                    .uri("/songs")
                     .bodyValue(payload)
                     .retrieve()
                     .bodyToMono(Void.class)
                     .timeout(Duration.ofSeconds(5))
-                    .onErrorResume(e -> Mono.empty())
+                    .onErrorResume(e -> {
+                        logger.error("Error creating song: {}", e.getMessage());
+                        return Mono.empty();
+                    })
                     .block();
-        } catch (Exception ignored) {
-            logger.error(ExceptionUtils.getStackTrace(ignored));
+        } catch (Exception e) {
+            logger.error(ExceptionUtils.getStackTrace(e));
         }
     }
 
@@ -41,11 +44,14 @@ public class SongClientService {
                     .uri(uriBuilder -> uriBuilder.path("/songs").queryParam("id", id).build())
                     .retrieve()
                     .bodyToMono(Void.class)
-                    .onErrorResume(e -> Mono.empty())
-                    //config to Evreka
+                    .timeout(Duration.ofSeconds(5))
+                    .onErrorResume(e -> {
+                        logger.error("Error deleting song: {}", e.getMessage());
+                        return Mono.empty();
+                    })
                     .block();
-        } catch (Exception ignored) {
-            logger.error(ExceptionUtils.getStackTrace(ignored));
+        } catch (Exception e) {
+            logger.error(ExceptionUtils.getStackTrace(e));
         }
     }
 }
