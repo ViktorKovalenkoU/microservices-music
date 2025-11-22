@@ -23,11 +23,6 @@ logs/
 # Virtual machine crash logs
 hs_err_pid*
 
-# IntelliJ IDEA
-.idea/
-*.iml
-out/
-
 # Eclipse
 .classpath
 .project
