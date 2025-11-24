@@ -36,6 +36,13 @@ target/
 .gradle/
 build/
 
+# IntelliJ IDEA project structure (зберігаємо для модулів)
+!.idea/
+!*.iml
+
+# Ігноруємо вихідні артефакти компіляції
+out/
+
 # System files
 .DS_Store
 Thumbs.db
