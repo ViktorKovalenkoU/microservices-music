@@ -9,10 +9,11 @@
         <outputRelativeToContentRoot value="true" />
         <module name="resource-service" />
         <module name="song-service" />
+        <module name="resource-processor" />
+        <module name="eureka-server" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="eureka-server" target="17" />
       <module name="microservices-music" target="17" />
       <module name="song-service (1)" target="17" />
       <module name="song-service (1) (com.learn)" target="17" />
@@ -23,6 +24,9 @@
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="eureka-server" options="-parameters" />
+      <module name="resource-processor" options="-parameters" />
+      <module name="resource-processor (1) (com.learn)" options="-parameters" />
+      <module name="resource-processor (2) (com.example)" options="-parameters" />
       <module name="resource-service" options="-parameters" />
       <module name="song-service" options="-parameters" />
       <module name="song-service (1)" options="-parameters" />
