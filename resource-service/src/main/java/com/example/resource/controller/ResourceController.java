@@ -21,10 +21,13 @@ public class ResourceController {
         this.service = service;
     }
 
-    @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> uploadBinary(HttpServletRequest request) throws IOException {
+    @PostMapping(
+            consumes = MediaType.ALL_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public Map<String, Long> upload(HttpServletRequest request) throws IOException {
         Long id = service.handleUpload(request);
-        return ResponseEntity.ok(Map.of("id", id));
+        return Map.of("id", id);
     }
 
     @GetMapping("/{id}")
