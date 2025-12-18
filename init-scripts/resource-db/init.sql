@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS resources (
     id BIGSERIAL PRIMARY KEY,
-    data BYTEA NOT NULL,
+    storage_key VARCHAR(255) NOT NULL UNIQUE,
     content_type VARCHAR(255),
     file_name VARCHAR(255)
 );
