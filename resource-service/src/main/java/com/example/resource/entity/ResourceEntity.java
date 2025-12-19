@@ -6,18 +6,18 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Table(name = "resources")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "resources")
 public class ResourceEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "data", nullable = false)
-    private byte[] data;
+    @Column(name = "storage_key", nullable = false, unique = true)
+    private String storageKey;
 
     @Column(name = "content_type")
     private String contentType;

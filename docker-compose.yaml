@@ -1,21 +1,51 @@
 services:
-  # ======================
-  # Eureka Server
-  # ======================
   eureka-server:
-    build: eureka-server
+    build: ./eureka-server
     container_name: eureka-server
     ports:
       - "8761:8761"
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8761/actuator/health"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8761/actuator/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - microservices-net
 
-  # ======================
-  # Resource Database
-  # ======================
+  localstack:
+    image: localstack/localstack:latest
+    container_name: localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3
+      - DEBUG=1
+      - DEFAULT_REGION=us-east-1
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:4566/_localstack/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-net
+
+  resource-processor:
+    build:
+      context: ./resource-processor
+      dockerfile: Dockerfile
+    container_name: resource-processor
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_APPLICATION_NAME=resource-processor
+      - SERVER_PORT=8083
+    depends_on:
+      - eureka-server
+    networks:
+      - microservices-net
+
   resource-db:
     image: postgres:17-alpine
     container_name: resource-db
@@ -28,14 +58,13 @@ services:
     volumes:
       - ./init-scripts/resource-db:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${RESOURCE_DB_NAME}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${RESOURCE_DB_NAME}" ]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - microservices-net
 
-  # ======================
-  # Song Database
-  # ======================
   song-db:
     image: postgres:17-alpine
     container_name: song-db
@@ -48,22 +77,30 @@ services:
     volumes:
       - ./init-scripts/song-db:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${SONG_DB_NAME}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${SONG_DB_NAME}" ]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - microservices-net
 
-  # ======================
-  # Resource Service
-  # ======================
   resource-service:
-    build: resource-service
+    build:
+      context: ./resource-service
+      dockerfile: Dockerfile
     container_name: resource-service
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://resource-db:5432/${RESOURCE_DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+
+      # ---------- S3 CONFIG FOR LOCALSTACK ----------
+      AWS_S3_ENDPOINT: http://localstack:4566
+      AWS_S3_REGION: us-east-1
+      AWS_S3_ACCESS_KEY: test
+      AWS_S3_SECRET_KEY: test
+      AWS_S3_BUCKET: songs-bucket
     depends_on:
       resource-db:
         condition: service_healthy
@@ -71,12 +108,13 @@ services:
         condition: service_healthy
     ports:
       - "${RESOURCE_SERVICE_PORT}:8081"
+    networks:
+      - microservices-net
 
-  # ======================
-  # Song Service
-  # ======================
   song-service:
-    build: song-service
+    build:
+      context: ./song-service
+      dockerfile: Dockerfile
     container_name: song-service
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://song-db:5432/${SONG_DB_NAME}
@@ -90,3 +128,9 @@ services:
         condition: service_healthy
     ports:
       - "${SONG_SERVICE_PORT}:8082"
+    networks:
+      - microservices-net
+
+networks:
+  microservices-net:
+    driver: bridge
