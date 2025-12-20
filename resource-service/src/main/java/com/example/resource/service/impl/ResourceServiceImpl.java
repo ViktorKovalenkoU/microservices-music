@@ -2,6 +2,7 @@ package com.example.resource.service.impl;
 
 import com.example.resource.entity.ResourceEntity;
 import com.example.resource.exception.NotFoundException;
+import com.example.resource.kafka.ResourceEventProducer;
 import com.example.resource.repository.ResourceRepository;
 import com.example.resource.service.ResourceService;
 import com.example.resource.service.S3StorageService;
@@ -12,7 +13,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,12 +24,17 @@ public class ResourceServiceImpl implements ResourceService {
 
     private final ResourceRepository repository;
     private final S3StorageService s3;
+    private final ResourceEventProducer producer;
+
 
     public ResourceServiceImpl(ResourceRepository repository,
-                               S3StorageService s3) {
+                               S3StorageService s3,
+                               ResourceEventProducer producer) {
         this.repository = repository;
         this.s3 = s3;
+        this.producer = producer;
     }
+
 
     @Override
     @Transactional
@@ -53,10 +62,10 @@ public class ResourceServiceImpl implements ResourceService {
                         "uploaded.mp3"
                 )
         );
-
-        return saved.getId();
+        Long id = saved.getId();
+        producer.sendResourceUploaded(id);
+        return id;
     }
-
 
 
     @Override
